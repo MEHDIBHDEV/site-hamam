@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Massage oriental, huile et feuilles">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E0E10"/>
+      <stop offset="1" stop-color="#111317"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3A86FF"/>
+      <stop offset="1" stop-color="#6BA892"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <!-- Flacon d'huile -->
+  <g transform="translate(520,440)">
+    <path d="M80 -120c0-16 24-16 24 0v40c0 12 8 24 18 32 28 22 46 56 46 94 0 66-54 120-120 120s-120-54-120-120c0-38 18-72 46-94 10-8 18-20 18-32v-40c0-16 24-16 24 0v36h64z" fill="#0C0E12" stroke="#23262B"/>
+    <rect x="44" y="-160" width="56" height="30" rx="6" fill="#3A86FF"/>
+    <circle cx="0" cy="80" r="90" fill="url(#acc)" opacity="0.10"/>
+  </g>
+  <!-- Feuilles -->
+  <g fill="#6BA892" opacity="0.7">
+    <path d="M260 560c90-40 140-100 160-160-80 20-140 70-160 160z"/>
+    <path d="M940 560c-90-40-140-100-160-160 80 20 140 70 160 160z"/>
+  </g>
+  <circle cx="600" cy="340" r="240" fill="url(#acc)" opacity="0.08"/>
+</svg>

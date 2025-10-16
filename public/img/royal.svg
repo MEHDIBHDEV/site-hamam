@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Hammam traditionnel avec vapeur et arches">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E0E10"/>
+      <stop offset="1" stop-color="#111317"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3A86FF"/>
+      <stop offset="1" stop-color="#6BA892"/>
+    </linearGradient>
+    <filter id="steam">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="7"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.22 0.0"/>
+      </feComponentTransfer>
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <!-- Sol carrelage -->
+  <g opacity="0.22">
+    <path d="M0 640h1200v160H0z" fill="#0B0C0E"/>
+    <g stroke="#23262B" stroke-width="1">
+      <path d="M0 680h1200M0 720h1200M0 760h1200"/>
+      <path d="M100 640v160M200 640v160M300 640v160M400 640v160M500 640v160M600 640v160M700 640v160M800 640v160M900 640v160M1000 640v160M1100 640v160"/>
+    </g>
+  </g>
+  <!-- Arches -->
+  <g fill="none" stroke="url(#accent)" stroke-width="6" opacity="0.8">
+    <path d="M180 640V420c0-90 70-160 160-160s160 70 160 160v220"/>
+    <path d="M540 640V420c0-90 70-160 160-160s160 70 160 160v220"/>
+  </g>
+  <!-- Bain/estrade -->
+  <rect x="220" y="560" width="760" height="40" rx="10" fill="#0C0E12" stroke="#23262B"/>
+  <!-- Vapeur -->
+  <g filter="url(#steam)">
+    <ellipse cx="380" cy="480" rx="220" ry="140" fill="#FFFFFF" opacity="0.18"/>
+    <ellipse cx="740" cy="480" rx="220" ry="140" fill="#FFFFFF" opacity="0.16"/>
+  </g>
+  <!-- Reflets -->
+  <circle cx="600" cy="320" r="220" fill="url(#accent)" opacity="0.10"/>
+</svg>
