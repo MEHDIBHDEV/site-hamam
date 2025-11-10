@@ -1,1 +1,21 @@
 .vercel
+# Node / Vite / TS
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+dist/
+backend/dist/
+coverage/
+*.log
+
+# Secrets
+.env
+.env.*
+backend/.env
+frontend/.env
+
+# OS/Editeur
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
