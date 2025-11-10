@@ -1,15 +1,16 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../ui/components/primitives/Button'
-import { services } from '../data/services'
 import ServiceCard from '../ui/components/ServiceCard'
 import { useState } from 'react'
 import QuickViewService from '../ui/components/QuickViewService'
 import { events } from '../utils/logging'
+import { useAppStore } from '../store'
 
 export default function Home() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<number | null>(null)
+  const { services, servicesLoading } = useAppStore()
   const service = services.find((s) => s.id === selected) || null
 
   return (
@@ -39,19 +40,23 @@ export default function Home() {
 
       <section className="container-app py-12 space-y-6">
         <h2 className="font-display text-2xl">Nos services signature</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.slice(0, 3).map((s) => (
-            <ServiceCard
-              key={s.id}
-              service={s}
-              onReserve={() => navigate('/reservation')}
-              onQuickView={() => {
-                setSelected(s.id)
-                setOpen(true)
-              }}
-            />
-          ))}
-        </div>
+        {servicesLoading ? (
+          <div className="text-textMuted text-sm">Chargement des services...</div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.slice(0, 3).map((s) => (
+              <ServiceCard
+                key={s.id}
+                service={s}
+                onReserve={() => navigate('/reservation')}
+                onQuickView={() => {
+                  setSelected(s.id)
+                  setOpen(true)
+                }}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="container-app pb-16 space-y-6">

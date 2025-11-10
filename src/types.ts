@@ -1,31 +1,36 @@
 export type Service = {
-  id: string
+  id: number
   title: string
   slug: string
-  description: string
+  description: string | null
   durationMin: number
   price: number
+  priceCents: number
   image: string
   tags: string[]
   isSignature: boolean
+  isActive: boolean
 }
 
-export type BookingStatus = 'pending' | 'confirmed' | 'canceled'
+export type ReservationStatus = 'pending' | 'confirmed' | 'canceled'
 
-export type Booking = {
-  id: string
-  serviceId: string
-  userId?: string
-  dateISO: string // YYYY-MM-DD
-  time: string // HH:mm
+export type Reservation = {
+  id: number
+  serviceId: number
+  serviceSlug: string
+  serviceTitle: string
+  startAt: string
+  dateISO: string
+  time: string
   people: number
   total: number
-  status: BookingStatus
+  totalCents: number
+  status: ReservationStatus
+  note: string | null
 }
 
 export type User = {
-  id: string
+  id: number
   name: string
   email: string
 }
-

@@ -1,10 +1,9 @@
 import { useAppStore } from '../store'
-import { useMemo } from 'react'
 import { Button } from '../ui/components/primitives/Button'
 
 export default function Confirmation() {
-  const { bookings } = useAppStore()
-  const last = useMemo(() => bookings[bookings.length - 1], [bookings])
+  const { reservations } = useAppStore()
+  const last = reservations[0]
 
   if (!last)
     return (

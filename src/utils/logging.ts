@@ -4,6 +4,8 @@ declare global {
   interface Window { __LOGS__?: any[] }
 }
 
+import { apiSendLog } from './api'
+
 export function logEvent(level: LogLevel, name: string, payload: Record<string, any> = {}) {
   const entry = {
     ts: new Date().toISOString(),
@@ -17,6 +19,12 @@ export function logEvent(level: LogLevel, name: string, payload: Record<string, 
 
   if (!window.__LOGS__) window.__LOGS__ = []
   window.__LOGS__!.push(entry)
+  apiSendLog({
+    level,
+    name,
+    page: window.location.pathname,
+    data: payload,
+  }).catch(() => {})
   return entry
 }
 
@@ -40,4 +48,3 @@ export const events = {
   form_validation_error: (payload: { formId: string; fields: string[] }) =>
     logEvent('warn', 'form_validation_error', payload),
 }
-

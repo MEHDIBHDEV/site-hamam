@@ -1,42 +1,198 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { Booking, User } from '../types'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { Reservation, Service, User } from '../types'
+import {
+  apiCancelReservation,
+  apiCreateReservation,
+  apiFetchMe,
+  apiFetchReservations,
+  apiFetchServices,
+  apiLogin,
+  apiLogout,
+  apiRegister,
+  setAuthToken,
+} from '../utils/api'
+import { fallbackServices } from '../data/services'
+
+type AuthCredentials = { email: string; password: string }
+type RegisterPayload = AuthCredentials & { name: string }
+
+type ReservationPayload = {
+  serviceSlug: string
+  dateISO: string
+  time: string
+  people: number
+  note?: string | null
+}
 
 type Store = {
-  bookings: Booking[]
-  addBooking: (b: Omit<Booking, 'status'> & { status?: Booking['status'] }) => void
-  cancelBooking: (id: string) => void
+  services: Service[]
+  servicesLoading: boolean
   user: User | null
-  login: (u: User) => void
-  logout: () => void
+  authLoading: boolean
+  reservations: Reservation[]
+  reservationsLoading: boolean
+  register: (payload: RegisterPayload) => Promise<void>
+  login: (payload: AuthCredentials) => Promise<void>
+  logout: () => Promise<void>
+  refreshReservations: () => Promise<void>
+  createReservation: (payload: ReservationPayload) => Promise<Reservation>
+  cancelReservation: (id: number) => Promise<Reservation>
 }
 
 const Ctx = createContext<Store | null>(null)
 
-export function AppStoreProvider({ children }: { children: React.ReactNode }) {
-  const [bookings, setBookings] = useState<Booking[]>([])
-  const [user, setUser] = useState<User | null>(null)
+const TOKEN_KEY = 'hr_token'
 
-  useEffect(() => {
-    const saved = localStorage.getItem('hr_user')
-    if (saved) setUser(JSON.parse(saved))
+export function AppStoreProvider({ children }: { children: React.ReactNode }) {
+  const [token, setTokenState] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
+  const [services, setServices] = useState<Service[]>(fallbackServices)
+  const [servicesLoading, setServicesLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null)
+  const [authLoading, setAuthLoading] = useState(Boolean(token))
+  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [reservationsLoading, setReservationsLoading] = useState(false)
+
+  const persistToken = useCallback((value: string | null) => {
+    setTokenState(value)
+    setAuthToken(value)
+    if (value) localStorage.setItem(TOKEN_KEY, value)
+    else localStorage.removeItem(TOKEN_KEY)
   }, [])
 
-  const value: Store = useMemo(
+  useEffect(() => {
+    setAuthToken(token)
+    if (!token) {
+      setUser(null)
+      setAuthLoading(false)
+      setReservations([])
+    }
+  }, [token])
+
+  useEffect(() => {
+    let alive = true
+    setServicesLoading(true)
+    apiFetchServices()
+      .then(({ services: remote }) => {
+        if (alive) setServices(remote)
+      })
+      .catch(() => {
+        if (alive) setServices(fallbackServices)
+      })
+      .finally(() => {
+        if (alive) setServicesLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const loadUser = useCallback(async () => {
+    if (!token) return
+    try {
+      setAuthLoading(true)
+      const { user } = await apiFetchMe()
+      setUser(user)
+      await apiFetchReservations()
+        .then(({ reservations }) => setReservations(reservations))
+        .catch(() => setReservations([]))
+    } catch {
+      persistToken(null)
+    } finally {
+      setAuthLoading(false)
+    }
+  }, [token, persistToken])
+
+  useEffect(() => {
+    loadUser()
+  }, [loadUser])
+
+  const refreshReservations = useCallback(async () => {
+    if (!token) return
+    setReservationsLoading(true)
+    try {
+      const { reservations } = await apiFetchReservations()
+      setReservations(reservations)
+    } finally {
+      setReservationsLoading(false)
+    }
+  }, [token])
+
+  const register = useCallback(
+    async (payload: RegisterPayload) => {
+      const { user, token } = await apiRegister(payload)
+      setUser(user)
+      persistToken(token)
+      await refreshReservations()
+    },
+    [persistToken, refreshReservations],
+  )
+
+  const login = useCallback(
+    async (payload: AuthCredentials) => {
+      const { user, token } = await apiLogin(payload)
+      setUser(user)
+      persistToken(token)
+      await refreshReservations()
+    },
+    [persistToken, refreshReservations],
+  )
+
+  const logout = useCallback(async () => {
+    try {
+      await apiLogout()
+    } catch {
+      // ignore
+    } finally {
+      persistToken(null)
+      setUser(null)
+      setReservations([])
+    }
+  }, [persistToken])
+
+  const createReservation = useCallback(
+    async (payload: ReservationPayload) => {
+      const { reservation } = await apiCreateReservation(payload)
+      setReservations((prev) => [reservation, ...prev])
+      return reservation
+    },
+    [],
+  )
+
+  const cancelReservation = useCallback(async (id: number) => {
+    const { reservation } = await apiCancelReservation(id)
+    setReservations((prev) => prev.map((r) => (r.id === id ? reservation : r)))
+    return reservation
+  }, [])
+
+  const value = useMemo<Store>(
     () => ({
-      bookings,
-      addBooking: (b) => setBookings((prev) => [...prev, { ...b, status: b.status ?? 'confirmed' } as Booking]),
-      cancelBooking: (id) => setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 'canceled' } : b))),
+      services,
+      servicesLoading,
       user,
-      login: (u) => {
-        setUser(u)
-        localStorage.setItem('hr_user', JSON.stringify(u))
-      },
-      logout: () => {
-        setUser(null)
-        localStorage.removeItem('hr_user')
-      },
+      authLoading,
+      reservations,
+      reservationsLoading,
+      register,
+      login,
+      logout,
+      refreshReservations,
+      createReservation,
+      cancelReservation,
     }),
-    [bookings, user],
+    [
+      services,
+      servicesLoading,
+      user,
+      authLoading,
+      reservations,
+      reservationsLoading,
+      register,
+      login,
+      logout,
+      refreshReservations,
+      createReservation,
+      cancelReservation,
+    ],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
@@ -47,4 +203,3 @@ export function useAppStore() {
   if (!ctx) throw new Error('useAppStore must be used within AppStoreProvider')
   return ctx
 }
-

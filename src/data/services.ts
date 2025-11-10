@@ -1,52 +1,56 @@
 import { Service } from '../types'
 
-export const services: Service[] = [
+export const fallbackServices: Service[] = [
   {
-    id: 'srv-royal',
+    id: 1,
     title: 'Hammam Royal',
     slug: 'hammam-royal',
     description: 'Rituel traditionnel avec vapeur et repos.',
     durationMin: 60,
     price: 55,
+    priceCents: 5500,
     image: '/img/royal.jpg',
     tags: ['Signature'],
     isSignature: true,
+    isActive: true,
   },
   {
-    id: 'srv-savon',
+    id: 2,
     title: 'Gommage au Savon Noir',
     slug: 'gommage-savon-noir',
     description: 'Gommage au kessa et savon noir.',
     durationMin: 45,
     price: 45,
+    priceCents: 4500,
     image: '/img/gommage.jpg',
     tags: ['Best-seller'],
     isSignature: false,
+    isActive: true,
   },
   {
-    id: 'srv-massage',
+    id: 3,
     title: 'Massage Oriental',
     slug: 'massage-oriental',
     description: 'Massage relaxant aux huiles.',
     durationMin: 60,
     price: 65,
+    priceCents: 6500,
     image: '/img/massage.jpg',
     tags: ['Relax'],
     isSignature: false,
+    isActive: true,
   },
   {
-    id: 'srv-pack',
+    id: 4,
     title: 'Pack Détente',
     slug: 'pack-detente',
     description: 'Hammam + Massage (90 min).',
     durationMin: 90,
     price: 99,
+    priceCents: 9900,
     image: '/img/pack.jpg',
     tags: ['Forfait'],
     isSignature: false,
+    isActive: true,
   },
 ]
-
-export function getServiceById(id: string) {
-  return services.find((s) => s.id === id)
-}

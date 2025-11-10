@@ -1,22 +1,25 @@
 import { useMemo, useState } from 'react'
-import { services as allServices } from '../data/services'
 import ServiceCard from '../ui/components/ServiceCard'
 import QuickViewService from '../ui/components/QuickViewService'
+import { useAppStore } from '../store'
+import { useNavigate } from 'react-router-dom'
 
 export default function Services() {
+  const navigate = useNavigate()
+  const { services, servicesLoading } = useAppStore()
   const [q, setQ] = useState('')
   const [maxPrice, setMaxPrice] = useState<number | null>(null)
   const [minDuration, setMinDuration] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<number | null>(null)
   const filtered = useMemo(() => {
-    return allServices.filter((s) =>
+    return services.filter((s) =>
       (q ? s.title.toLowerCase().includes(q.toLowerCase()) : true) &&
       (maxPrice ? s.price <= maxPrice : true) &&
       (minDuration ? s.durationMin >= minDuration : true),
     )
-  }, [q, maxPrice, minDuration])
-  const service = allServices.find((s) => s.id === selected) || null
+  }, [services, q, maxPrice, minDuration])
+  const service = services.find((s) => s.id === selected) || null
 
   return (
     <div className="container-app py-10 space-y-6">
@@ -49,22 +52,25 @@ export default function Services() {
           <option value="90">90 min</option>
         </select>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map((s) => (
-          <ServiceCard
-            key={s.id}
-            service={s}
-            onReserve={() => (window.location.href = '/reservation')}
-            onQuickView={() => {
-              setSelected(s.id)
-              setOpen(true)
-            }}
-          />
-        ))}
-      </div>
+      {servicesLoading ? (
+        <div className="text-sm text-textMuted">Chargement des services...</div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((s) => (
+            <ServiceCard
+              key={s.id}
+              service={s}
+              onReserve={() => navigate('/reservation')}
+              onQuickView={() => {
+                setSelected(s.id)
+                setOpen(true)
+              }}
+            />
+          ))}
+        </div>
+      )}
 
-      <QuickViewService open={open} onClose={() => setOpen(false)} service={service} onReserve={() => (window.location.href = '/reservation')} />
+      <QuickViewService open={open} onClose={() => setOpen(false)} service={service} onReserve={() => navigate('/reservation')} />
     </div>
   )
 }
-

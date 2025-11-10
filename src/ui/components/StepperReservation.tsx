@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react'
-import { services } from '../../data/services'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from './primitives/Button'
 import DatePicker from './DatePicker'
 import TimePicker from './TimePicker'
@@ -11,22 +10,36 @@ import { useNavigate } from 'react-router-dom'
 
 export default function StepperReservation() {
   const [step, setStep] = useState(1)
-  const [serviceId, setServiceId] = useState(services[0]?.id ?? '')
+  const [serviceSlug, setServiceSlug] = useState('')
   const [dateISO, setDateISO] = useState(new Date().toISOString().slice(0, 10))
   const [time, setTime] = useState<string | null>(null)
   const [people, setPeople] = useState(1)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [note, setNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const { push } = useToast()
-  const { addBooking } = useAppStore()
+  const { services, servicesLoading, user, createReservation } = useAppStore()
   const navigate = useNavigate()
 
-  const s = services.find((s) => s.id === serviceId)!
+  useEffect(() => {
+    if (!serviceSlug && services.length > 0) {
+      setServiceSlug(services[0].slug)
+    }
+  }, [services, serviceSlug])
+
+  const currentService = services.find((s) => s.slug === serviceSlug)
   const allSlots = useMemo(() => generateSlots(), [])
   const daySlots: Slot[] = allSlots.filter((s) => s.dateISO === dateISO)
 
-  function next() {
+  if (servicesLoading) {
+    return <div className="text-sm text-textMuted">Chargement des services...</div>
+  }
+
+  if (!currentService) {
+    return <div className="text-sm text-textMuted">Aucun service disponible pour le moment.</div>
+  }
+
+  async function next() {
     if (step === 1) {
       setStep(2)
     } else if (step === 2) {
@@ -36,15 +49,16 @@ export default function StepperReservation() {
       }
       setStep(3)
     } else if (step === 3) {
-      if (!name || !email) {
-        push({ title: 'Champs manquants', description: 'Nom et email requis', type: 'error' })
-        events.form_validation_error({ formId: 'reservation-contact', fields: ['name', 'email'] })
+      if (!user) {
+        push({ title: 'Connexion requise', description: 'Connectez-vous pour finaliser la réservation.', type: 'error' })
+        events.form_validation_error({ formId: 'reservation-auth', fields: ['user'] })
+        navigate('/account')
         return
       }
       const chosen = allSlots.find((sl) => sl.dateISO === dateISO && sl.time === time)
-      events.reservation_attempt({ serviceId, dateISO, time: time!, people })
+      events.reservation_attempt({ serviceId: currentService.slug, dateISO, time: time!, people })
       if (!chosen?.available) {
-        events.reservation_conflict({ serviceId, dateISO, time: time! })
+        events.reservation_conflict({ serviceId: currentService.slug, dateISO, time: time! })
         const alts = findAlternatives(allSlots, dateISO, time!, 3)
         push({
           title: 'Créneau indisponible',
@@ -53,20 +67,24 @@ export default function StepperReservation() {
         })
         return
       }
-      const total = s.price * people
-      const bookingId = Math.random().toString(36).slice(2)
-      addBooking({
-        id: bookingId,
-        serviceId,
-        dateISO,
-        time: time!,
-        people,
-        total,
-        status: 'confirmed',
-      })
-      events.reservation_confirmed({ bookingId, amount: total })
-      push({ title: 'Réservation confirmée', description: 'Votre moment de détente est réservé.', type: 'success' })
-      navigate('/confirmation')
+      const total = currentService.price * people
+      setSubmitting(true)
+      try {
+        const reservation = await createReservation({
+          serviceSlug: currentService.slug,
+          dateISO,
+          time: time!,
+          people,
+          note: note || null,
+        })
+        events.reservation_confirmed({ bookingId: reservation.id.toString(), amount: reservation.total })
+        push({ title: 'Réservation confirmée', description: 'Votre moment de détente est réservée.', type: 'success' })
+        navigate('/confirmation')
+      } catch (error: any) {
+        push({ title: 'Erreur', description: error?.message ?? 'Impossible de créer la réservation.', type: 'error' })
+      } finally {
+        setSubmitting(false)
+      }
     }
   }
 
@@ -83,14 +101,14 @@ export default function StepperReservation() {
 
         {step === 1 && (
           <section aria-label="Choisir un service" className="space-y-4">
-            <select
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
+              <select
+              value={serviceSlug}
+              onChange={(e) => setServiceSlug(e.target.value)}
               className="w-full h-12 rounded-xl bg-surface/70 border border-border px-3 focus-ring"
             >
               {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title} — {s.durationMin} min — {s.price} €
+                <option key={s.id} value={s.slug}>
+                  {s.title} – {s.durationMin} min – {s.price.toFixed(0)} €
                 </option>
               ))}
             </select>
@@ -119,20 +137,29 @@ export default function StepperReservation() {
 
         {step === 3 && (
           <section aria-label="Vos coordonnées" className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-3">
-              <input
-                placeholder="Nom"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-11 rounded-xl bg-surface/70 border border-border px-3 focus-ring"
-              />
-              <input
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-11 rounded-xl bg-surface/70 border border-border px-3 focus-ring"
-              />
-            </div>
+            {user ? (
+              <>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <input value={user.name} disabled className="h-11 rounded-xl bg-surface/50 border border-border px-3" />
+                  <input value={user.email} disabled className="h-11 rounded-xl bg-surface/50 border border-border px-3" />
+                </div>
+                <textarea
+                  placeholder="Ajouter une note (optionnel)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full min-h-24 rounded-xl bg-surface/70 border border-border px-3 py-2 focus-ring"
+                />
+              </>
+            ) : (
+              <div className="rounded-xl border border-border bg-surface/60 p-4">
+                <p className="text-sm">
+                  Vous devez créer un compte ou vous connecter avant de confirmer.{' '}
+                  <button className="underline" onClick={() => navigate('/account')}>
+                    Aller à mon compte
+                  </button>
+                </p>
+              </div>
+            )}
           </section>
         )}
 
@@ -140,22 +167,24 @@ export default function StepperReservation() {
           <Button variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}>
             Retour
           </Button>
-          <Button onClick={next}>{step === 3 ? 'Confirmer' : 'Continuer'}</Button>
+          <Button onClick={next} disabled={step === 3 && (!user || submitting)}>
+            {step === 3 ? (submitting ? 'Validation...' : 'Confirmer') : 'Continuer'}
+          </Button>
         </div>
       </div>
 
       <aside className="sticky top-24 h-fit space-y-4 rounded-2xl border border-border bg-surface/60 p-4">
         <div className="font-display text-lg">Résumé</div>
         <div className="text-sm text-textMuted">
-          <div>Service: <span className="text-text">{s.title}</span></div>
-          <div>Durée: <span className="text-text">{s.durationMin} min</span></div>
+          <div>Service: <span className="text-text">{currentService.title}</span></div>
+          <div>Durée: <span className="text-text">{currentService.durationMin} min</span></div>
           <div>Date: <span className="text-text">{dateISO}</span></div>
           <div>Heure: <span className="text-text">{time ?? '-'}</span></div>
           <div>Personnes: <span className="text-text">{people}</span></div>
         </div>
         <div className="border-t border-border pt-2 flex items-center justify-between">
           <div>Total</div>
-          <div className="text-gold font-medium">{(s.price * people).toFixed(0)} €</div>
+          <div className="text-gold font-medium">{(currentService.price * people).toFixed(0)} €</div>
         </div>
       </aside>
     </div>
@@ -171,4 +200,3 @@ function Step({ n, current, label }: { n: number; current: number; label: string
     </div>
   )
 }
-
