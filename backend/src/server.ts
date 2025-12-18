@@ -46,8 +46,8 @@ const corsOptions: cors.CorsOptions = {
 }
 
 app.use(cors(corsOptions))
-// Respond to every OPTIONS preflight (Express 5 no longer accepts bare '*')
-app.options('/*', cors(corsOptions))
+app.options(/.*/, cors(corsOptions)) // ✅ preflight safe Express 5
+
 
 app.use(helmet())
 app.use(express.json())
