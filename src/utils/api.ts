@@ -1,6 +1,7 @@
 import { Reservation, Service, User } from '../types'
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '')
+const envApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
+const API_BASE = (envApiUrl && envApiUrl.length > 0 ? envApiUrl : 'http://localhost:4000/api').replace(/\/+$/, '')
 
 let authToken: string | null = null
 
@@ -25,11 +26,17 @@ async function request<T>(path: string, options: RequestOptions = {}) {
       ? JSON.stringify(init.body)
       : init.body
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers,
-    body: payload,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers,
+      body: payload,
+    })
+  } catch (error: unknown) {
+    const reason = error instanceof Error ? error.message : 'Network error'
+    throw new Error(`API unreachable (${reason})`)
+  }
 
   let data: any = null
   if (response.status !== 204) {

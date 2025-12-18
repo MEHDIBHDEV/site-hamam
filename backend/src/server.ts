@@ -13,11 +13,42 @@ const app = express()
 
 app.set('trust proxy', 1)
 
-app.use(
-  cors({
-    origin: env.clientUrl.split(',').map((v) => v.trim()),
-  }),
-)
+/**
+ * CORS configuration
+ * - Dev: allow every http://localhost:* so Vite hot reload stays happy
+ * - Prod: only allow the URLs listed in CLIENT_URL (comma separated)
+ */
+const allowedOrigins = (env.clientUrl ?? '')
+  .split(',')
+  .map((v) => v.trim())
+  .filter(Boolean)
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow Postman/curl when there is no Origin header
+    if (!origin) return callback(null, true)
+
+    // Dev mode: accept any localhost origin (ports change often with Vite)
+    if (env.nodeEnv !== 'production' && origin.startsWith('http://localhost')) {
+      return callback(null, true)
+    }
+
+    // Production (or when we want to reduce the surface): only allow explicit list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error(`CORS blocked: ${origin}`), false)
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}
+
+app.use(cors(corsOptions))
+// Respond to every OPTIONS preflight (Express 5 no longer accepts bare '*')
+app.options('/*', cors(corsOptions))
+
 app.use(helmet())
 app.use(express.json())
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'))

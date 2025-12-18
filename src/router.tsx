@@ -14,9 +14,10 @@ export const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: 'services', element: <Services /> },
       { path: 'reservation', element: <Reservation /> },
+      // keep both spellings so /account and /compte stay valid
+      { path: 'account', element: <Account /> },
       { path: 'compte', element: <Account /> },
       { path: 'confirmation', element: <Confirmation /> },
     ],
   },
 ])
-

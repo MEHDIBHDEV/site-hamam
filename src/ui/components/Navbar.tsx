@@ -41,7 +41,7 @@ export default function Navbar() {
           <NavLink to="/reservation" className={navLinkClass} aria-label="Réserver">
             Réserver
           </NavLink>
-          <NavLink to="/compte" className={navLinkClass} aria-label="Compte">
+          <NavLink to="/account" className={navLinkClass} aria-label="Compte">
             Compte
           </NavLink>
         </nav>
